@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 executable = "anki-x.exe" if os.name == "nt" else "anki-x"
 payload = ROOT / "dist/anki-x"
 with tempfile.TemporaryDirectory(prefix="anki-x-clean-install-") as folder:
-    root = Path(folder)
+    root = Path(folder).resolve()
     env = dict(os.environ, ANKI_X_HOME=str(root / "user"), ANKI_X_BIN_DIR=str(root / "bin"))
     # Do not mutate the real Windows user PATH/Start Menu during smoke tests.
     env["ANKI_X_NO_PATH_UPDATE"] = "1"
@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory(prefix="anki-x-clean-install-") as folder:
     installed = Path(metadata["root"]) / executable
     version = subprocess.check_output([str(installed), "--version"], cwd=root, env=env, text=True, encoding="utf-8").strip()
     paths = json.loads(subprocess.check_output([str(installed), "--json", "paths"], cwd=root, env=env, text=True, encoding="utf-8"))
-    assert all(str(root / "user") in path for path in paths.values())
+    assert all(Path(path).resolve().is_relative_to((root / "user").resolve()) for path in paths.values()), paths
     assert (Path(metadata["root"]) / "licenses/anki-x-MIT.txt").exists()
     launcher = metadata["launchers"][0]
     invocation = ["cmd", "/c", launcher, "--version"] if os.name == "nt" else [launcher, "--version"]

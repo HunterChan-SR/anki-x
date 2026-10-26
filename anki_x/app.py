@@ -12,7 +12,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
-from textual.widgets import Button, ContentSwitcher, Footer, Input, Label, Select, Static, Tree
+from textual.widgets import Button, ContentSwitcher, DirectoryTree, Footer, Input, Label, Select, Static, Tree
 
 from .api import AnkiError, ConnectionError, PendingOperation
 from .bootstrap import Connector
@@ -29,6 +29,7 @@ class PathDialog(ModalScreen):
     PathDialog { align: center middle; }
     PathDialog > Vertical { width: 75%; max-width: 90; height: auto; border: round $accent; padding: 1 2; background: $surface; }
     PathDialog Horizontal { height: auto; margin-top: 1; }
+    PathDialog DirectoryTree { height: 14; border: round $panel; }
     """
 
     def __init__(self, title, value="", secret=False):
@@ -38,6 +39,9 @@ class PathDialog(ModalScreen):
     def compose(self):
         with Vertical():
             yield Label(self.title_text)
+            if not self.secret:
+                start = Path(self.value).expanduser() if self.value else Path.home()
+                yield DirectoryTree(start if start.is_dir() else start.parent, id="path-tree")
             yield Input(value=self.value, password=self.secret, id="path-value")
             with Horizontal():
                 yield Button("确定", id="path-ok", variant="primary")
@@ -45,6 +49,11 @@ class PathDialog(ModalScreen):
 
     def on_mount(self):
         self.query_one(Input).focus()
+
+    @on(DirectoryTree.FileSelected)
+    @on(DirectoryTree.DirectorySelected)
+    def path_selected(self, event):
+        self.query_one(Input).value = str(event.path)
 
     @on(Button.Pressed, "#path-ok")
     @on(Input.Submitted)
@@ -634,7 +643,7 @@ class AnkiX(App):
             elif identifier == "study" and self.deck_model.current:
                 await self.enter_deck(self.deck_model.current)
             elif identifier == "import":
-                self.push_screen(PathDialog("输入或粘贴 .apkg 文件路径"), lambda value: self.run_worker(self.path_result("import", value)))
+                self.push_screen(PathDialog("选择 .apkg 牌组文件（也可粘贴路径）"), lambda value: self.run_worker(self.path_result("import", value)))
             elif identifier == "starter":
                 name = await self.task("正在添加体验词卡…", starter_deck, self.client)
                 await self.load_home()

@@ -69,8 +69,19 @@ Uninstallable=no
 WizardStyle=modern
 [Files]
 Source: "{payload}\*"; DestDir: "{{tmp}}\anki-x-payload"; Flags: recursesubdirs createallsubdirs deleteafterinstall
-[Run]
-Filename: "{{tmp}}\anki-x-payload\anki-x.exe"; Parameters: "install"; Flags: waituntilterminated
+[Code]
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    if not Exec(ExpandConstant('{{tmp}}\anki-x-payload\anki-x.exe'), 'install', '', SW_SHOW, ewWaitUntilTerminated, ResultCode) then
+      RaiseException('Could not start anki-x installer.');
+    if ResultCode <> 0 then
+      RaiseException('anki-x installation failed. Your previous installation was kept.');
+  end;
+end;
 ''', encoding="utf-8")
     subprocess.run([compiler, str(script)], check=True)
     print(dist / f"anki-x-{__version__}-windows-{cpu}-setup.exe")
