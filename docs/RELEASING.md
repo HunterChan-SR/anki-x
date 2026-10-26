@@ -6,7 +6,7 @@
 4. Create a `v<version>` tag at the verified commit. The workflow rebuilds all targets, combines checksums and creates a **draft prerelease**.
 5. Review download names, license/source bundle, installation on clean systems, upgrade/rollback, and release notes. Publish the reviewed release.
 
-The macOS native packager accepts `MACOS_SIGN_IDENTITY` for a Developer ID identity already imported in the build keychain. Certificate import and Apple notarization require the project owner's signing credentials. Windows Authenticode similarly requires an available signing certificate and provider. Never put certificates, passwords, tokens, or private keys in the repository or release assets. Until configured, mark all packages as unsigned prereleases.
+The workflow has an explicit `signed` manual option. See [SIGNING.md](SIGNING.md) for the required Secrets and credential cleanup. A requested signed build fails when material is incomplete. Real Developer ID / Apple notarization and Windows Authenticode still require the project owner's signing identity. Never put certificates, passwords, tokens, or private keys in the repository or release assets. Until a real signed build passes, mark packages as unsigned prereleases.
 
 The build workflow currently covers macOS Apple Silicon, macOS Intel, Windows x64 and Linux x64. It does not claim ARM64 Windows/Linux support or every Linux distribution. The Anki upstream compatibility manifest is pinned to official version 26.09.3 and includes verified release checksums.
 

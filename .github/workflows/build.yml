@@ -5,6 +5,11 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      signed:
+        description: "Build with publisher signatures and Apple notarization (requires configured signing secrets)"
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -22,7 +27,16 @@ jobs:
           - os: ubuntu-22.04
             platform: linux-x64
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 60
+    env:
+      MACOS_CERTIFICATE_BASE64: ${{ github.event_name == 'workflow_dispatch' && inputs.signed && startsWith(matrix.platform, 'macos-') && secrets.MACOS_CERTIFICATE_BASE64 || '' }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && inputs.signed && startsWith(matrix.platform, 'macos-') && secrets.MACOS_CERTIFICATE_PASSWORD || '' }}
+      MACOS_SIGN_IDENTITY: ${{ github.event_name == 'workflow_dispatch' && inputs.signed && startsWith(matrix.platform, 'macos-') && secrets.MACOS_SIGN_IDENTITY || '' }}
+      APPLE_API_KEY_BASE64: ${{ github.event_name == 'workflow_dispatch' && inputs.signed && startsWith(matrix.platform, 'macos-') && secrets.APPLE_API_KEY_BASE64 || '' }}
+      APPLE_API_KEY_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.signed && startsWith(matrix.platform, 'macos-') && secrets.APPLE_API_KEY_ID || '' }}
+      APPLE_API_ISSUER: ${{ github.event_name == 'workflow_dispatch' && inputs.signed && startsWith(matrix.platform, 'macos-') && secrets.APPLE_API_ISSUER || '' }}
+      WINDOWS_CERTIFICATE_BASE64: ${{ github.event_name == 'workflow_dispatch' && inputs.signed && startsWith(matrix.platform, 'windows-') && secrets.WINDOWS_CERTIFICATE_BASE64 || '' }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && inputs.signed && startsWith(matrix.platform, 'windows-') && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,6 +54,10 @@ jobs:
         env:
           ANKI_X_AUDIO_BACKEND: "null"
         run: python -m pytest -q
+      - name: Prepare publisher signing
+        env:
+          ANKI_X_REQUIRE_SIGNING: ${{ inputs.signed && runner.os != 'Linux' && '1' || '' }}
+        run: python tools/signing.py prepare
       - name: Build release
         run: python tools/build_release.py
       - name: Verify real Anki scheduler in an isolated collection
@@ -61,7 +79,11 @@ jobs:
             dist/*.dmg
             dist/*-setup.exe
             dist/*-verification.json
+            dist/*-signing.json
           retention-days: 30
+      - name: Remove temporary signing credentials
+        if: always()
+        run: python tools/signing.py cleanup
   prerelease:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
@@ -82,4 +104,9 @@ jobs:
       - name: Create release draft
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" release-assets/* --draft --prerelease --title "anki-x ${{ github.ref_name }}" --notes-file docs/RELEASE_NOTES.md
+        run: |
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            echo "Release already exists; preserving published assets. Download this build's artifacts separately."
+          else
+            gh release create "${{ github.ref_name }}" release-assets/* --draft --prerelease --title "anki-x ${{ github.ref_name }}" --notes-file docs/RELEASE_NOTES.md
+          fi

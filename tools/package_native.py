@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from anki_x import __version__
 from anki_x.platforms import system_id
+from signing import checked, configured, notarize, notarize_app, sign_windows
 
 system, cpu = system_id()
 dist = ROOT / "dist"
@@ -40,9 +41,9 @@ int main(void) {
             "CFBundleIdentifier": "app.ankix.terminal", "CFBundleVersion": "1", "CFBundleShortVersionString": __version__,
             "CFBundlePackageType": "APPL", "LSMinimumSystemVersion": "13.0", "LSUIElement": True}
     (contents / "Info.plist").write_bytes(plistlib.dumps(info))
-    identity = os.environ.get("MACOS_SIGN_IDENTITY")
-    if identity:
-        subprocess.run(["codesign", "--force", "--deep", "--options", "runtime", "--timestamp", "--sign", identity, str(app)], check=True)
+    if configured("darwin"):
+        checked(["codesign", "--force", "--deep", "--options", "runtime", "--timestamp", "--sign", os.environ["MACOS_SIGN_IDENTITY"], str(app)], "Sign macOS app")
+        notarize_app(app)
     dmgroot = dist / "dmg-root"
     dmgroot.mkdir(exist_ok=True)
     shutil.copytree(app, dmgroot / app.name, dirs_exist_ok=True)
@@ -50,6 +51,9 @@ int main(void) {
         (dmgroot / "Applications").symlink_to("/Applications", target_is_directory=True)
     dmg = dist / f"anki-x-{__version__}-macos-{cpu}.dmg"
     subprocess.run(["hdiutil", "create", "-volname", "Anki X", "-srcfolder", str(dmgroot), "-ov", "-format", "UDZO", str(dmg)], check=True)
+    if configured("darwin"):
+        checked(["codesign", "--force", "--timestamp", "--sign", os.environ["MACOS_SIGN_IDENTITY"], str(dmg)], "Sign macOS disk image")
+        notarize(dmg, staple=True)
     print(dmg)
 elif system == "windows":
     compiler = shutil.which("iscc") or r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
@@ -84,6 +88,8 @@ begin
 end;
 ''', encoding="utf-8")
     subprocess.run([compiler, str(script)], check=True)
-    print(dist / f"anki-x-{__version__}-windows-{cpu}-setup.exe")
+    installer = dist / f"anki-x-{__version__}-windows-{cpu}-setup.exe"
+    sign_windows(installer)
+    print(installer)
 else:
     print("Linux uses the verified install.sh / self-contained ZIP.")
