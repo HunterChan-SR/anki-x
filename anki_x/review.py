@@ -4,13 +4,12 @@ import base64
 import hashlib
 import json
 import re
-import shutil
-import subprocess
 import tempfile
 import time
 from pathlib import Path
 
 from .api import AnkiError, ConnectionError, PendingOperation
+from .audio import play
 
 
 RATINGS = [("again", "忘记"), ("hard", "吃力"), ("good", "记得"), ("easy", "轻松")]
@@ -195,21 +194,18 @@ class Reviewer:
         filenames = list(dict.fromkeys(re.findall(r"\[sound:([^\]]+)\]", content)))
         if not filenames:
             raise AnkiError("这张卡片没有可播放的音频。")
-        executable = shutil.which("afplay") or shutil.which("mpv")
-        if not executable:
-            raise AnkiError("未找到音频播放器；macOS 使用系统 afplay。")
         filename = filenames[0]
         path = Path(self.media_cache.name) / (hashlib.sha256(filename.encode()).hexdigest() + Path(filename).suffix)
         if not path.exists():
             media = self.client.col("media.get", filename=filename)
             path.write_bytes(base64.b64decode(media["data"], validate=True))
         self.stop_audio()
-        self.player = subprocess.Popen([executable, str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.player = play(path)
 
     def stop_audio(self):
-        if self.player and self.player.poll() is None:
+        if self.player:
             self.player.terminate()
-            self.player.wait(timeout=2)
+            self.player = None
 
     def close(self):
         self.stop_audio()

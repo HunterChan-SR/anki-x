@@ -1,0 +1,12 @@
+{
+  "commit": "62fc13d107c2b02130e503749e9933495c6456fb",
+  "package": "2055492159",
+  "license": "GPL-3.0-or-later",
+  "source": "https://git.sr.ht/~foosoft/anki-connect",
+  "tested_anki": [
+    "26.8",
+    "26.9.3"
+  ],
+  "sha256": "fd2e54d3162a67286b53d2d5faffff18867d591e49f9f5e52b31089466d36358",
+  "source_sha256": "b0b75194ac2425981d3b47eccd7bbcd865aebebb5da93b62e172eae647f09fc5"
+}

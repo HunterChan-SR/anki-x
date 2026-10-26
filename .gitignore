@@ -3,5 +3,11 @@ __pycache__/
 *.pyc
 .state/
 .venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.coverage
+*.spec
 verification/*.json
 verification/*.log

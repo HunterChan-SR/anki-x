@@ -1,0 +1,49 @@
+{
+  "deck": "anki-x 入门词卡",
+  "license": "MIT; original example sentences by anki-x contributors",
+  "notes": [
+    {
+      "word": "hello",
+      "meaning": "你好；问候",
+      "example": "Hello, my name is Alex.",
+      "translation": "你好，我叫 Alex。",
+      "audio": "hello.wav"
+    },
+    {
+      "word": "book",
+      "meaning": "书；预订",
+      "example": "I read a book before bed.",
+      "translation": "我睡前读一本书。",
+      "audio": "book.wav"
+    },
+    {
+      "word": "learn",
+      "meaning": "学习；学会",
+      "example": "We learn a little every day.",
+      "translation": "我们每天学一点。",
+      "audio": "learn.wav"
+    },
+    {
+      "word": "remember",
+      "meaning": "记住；想起",
+      "example": "I remember this word now.",
+      "translation": "我现在记得这个单词了。",
+      "audio": "remember.wav"
+    },
+    {
+      "word": "practice",
+      "meaning": "练习；实践",
+      "example": "Practice helps me speak clearly.",
+      "translation": "练习帮助我说得清楚。",
+      "audio": "practice.wav"
+    },
+    {
+      "word": "progress",
+      "meaning": "进步；进展",
+      "example": "Small steps bring steady progress.",
+      "translation": "小步前进带来稳步进步。",
+      "audio": "progress.wav"
+    }
+  ],
+  "audio_source": "Generated with Flite 2.2 cmu_us_kal16; see licenses/Flite-COPYING.txt"
+}

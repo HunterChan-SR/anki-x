@@ -53,7 +53,7 @@ class Client:
             with self.opener.open(request, timeout=self.timeout) as response:
                 reply = json.load(response)
         except urllib.error.HTTPError as exc:
-            raise ConnectionError("AnkiConnect HTTP %s；请检查插件版本和 API key。" % exc.code) from exc
+            raise ConnectionError("AnkiConnect HTTP %s；请检查插件版本和 API key。" % exc.code, code=exc.code) from exc
         except (OSError, ValueError, urllib.error.URLError) as exc:
             raise ConnectionError("无法取得 Anki 响应。请保持 Anki 打开；本次请求不会自动重发。") from exc
         if not isinstance(reply, dict) or reply.get("id") != request_id or reply.get("jsonrpc") != "2.0":
@@ -125,7 +125,7 @@ class Client:
             time.sleep(delay)
             delay = min(delay * 1.4, 0.5)
 
-    def change(self, method, progress=None, **params):
+    def change(self, method, progress=None, application=False, **params):
         """Journal intent before sending, so a lost response never looks successful."""
         if self.journal is not None and self.journal.exists():
             raise AnkiError("上次操作结果尚未确认。请先运行 anki-x recover。")
@@ -133,7 +133,7 @@ class Client:
                   "state": "sending", "params": params}
         self._save_pending(record)
         try:
-            result = self.col(method, **params)
+            result = self.call(method, **params) if application else self.col(method, **params)
         except ConnectionError:
             # The server might have committed it. Keep the intent; never resend.
             raise
