@@ -52,6 +52,10 @@ def print_result(value, as_json):
 
 
 def main(argv=None):
+    if os.name == "nt":
+        for stream in (sys.stdout, sys.stderr):
+            if hasattr(stream, "reconfigure"):
+                stream.reconfigure(encoding="utf-8", errors="replace")
     args = parser().parse_args(argv)
     paths = AppPaths.discover()
     paths.ensure()

@@ -106,11 +106,12 @@ class AnkiX(App):
     #busy { height: auto; min-height: 1; padding: 0 3; color: $warning; }
     """
     BINDINGS = [Binding("q", "quit_app", "退出"), Binding("escape,b", "back", "返回"),
-                Binding("space", "reveal", "翻面", show=False), Binding("1", "grade(1)", show=False),
+                Binding("space,enter", "reveal", "翻面", show=False), Binding("1", "grade(1)", show=False),
                 Binding("2", "grade(2)", show=False), Binding("3", "grade(3)", show=False), Binding("4", "grade(4)", show=False),
                 Binding("r", "audio", "重播"), Binding("u", "undo", "撤销"), Binding("g", "refresh", "刷新"),
                 Binding("a", "autoplay", show=False), Binding("t", "title", show=False),
                 Binding("d", "details", show=False), Binding("s", "settings", "设置"), Binding("?", "help", "帮助"),
+                Binding("j", "scroll_card(1)", show=False), Binding("k", "scroll_card(-1)", show=False),
                 Binding("ctrl+c", "quit_app", show=False, priority=True)]
 
     def __init__(self, paths, settings, *, explicit_url=None, initial="resume", deck=None, connector=None):
@@ -138,6 +139,7 @@ class AnkiX(App):
         self._started_anki = False
         self._last_bookmark = None
         self._return_page = "home"
+        self._update = None
 
     def compose(self) -> ComposeResult:
         yield Static("anki-x", id="brand", markup=False)
@@ -190,6 +192,7 @@ class AnkiX(App):
                     yield Button("顶部标题", id="toggle-title")
                     yield Button("同步并等待完成", id="sync")
                     yield Button("检查更新", id="updates")
+                    yield Button("安装已发现的更新", id="apply-update")
                     yield Button("重新设置 Anki 接入", id="setup-again")
                     yield Button("导出诊断信息", id="diagnostics-settings")
                     yield Button("返回", id="settings-back")
@@ -201,6 +204,7 @@ class AnkiX(App):
 
     async def on_mount(self):
         self.query_one("#brand").display = self.settings.get("show_title", True)
+        self.query_one("#apply-update").display = False
         self.set_interval(1, self.save_navigation)
         self.run_worker(self.connect_environment(), exclusive=False)
 
@@ -242,6 +246,12 @@ class AnkiX(App):
             if report is None:
                 return
             self.environment = report
+            self.query_one("#install-anki").display = report.state == "anki_missing"
+            self.query_one("#install-addon").display = report.state in ("plugin_missing", "plugin_disabled", "port_conflict", "incompatible", "restart_needed")
+            self.query_one("#start-anki").display = report.executable is not None and report.state != "ready"
+            pending = (self.paths.state / "pending.json").exists()
+            self.query_one("#recover").display = pending
+            self.query_one("#acknowledge").display = pending
             self.query_one("#setup-copy", Static).update(report.title + "\n\n" + report.message)
             if report.state == "anki_stopped" and not self._started_anki:
                 self._started_anki = True
@@ -460,6 +470,11 @@ class AnkiX(App):
             self.query_one("#card-scroll", VerticalScroll).scroll_home(animate=False)
             self.render_review()
 
+    def action_scroll_card(self, direction):
+        if self.page == "review":
+            scroll = self.query_one("#card-scroll", VerticalScroll)
+            scroll.scroll_relative(y=direction, animate=False)
+
     def action_autoplay(self):
         value = not self.settings.get("autoplay", True)
         self.settings.set("autoplay", value)
@@ -551,6 +566,8 @@ class AnkiX(App):
 
     def show_recovery(self):
         self.show_page("setup")
+        self.query_one("#recover").display = True
+        self.query_one("#acknowledge").display = True
         self.query_one("#setup-copy", Static).update("上次操作的结果尚未确认。\n\n先点击“检查未完成操作”。若请求中断且没有操作编号，请在 Anki 中核对结果，再选择解除未确认状态。不会重新提交评分。")
 
     @on(Select.Changed, "#profiles")
@@ -657,6 +674,14 @@ class AnkiX(App):
             elif identifier == "updates":
                 from .updater import check_update
                 result = await self.task("正在检查更新…", check_update)
+                self._update = result
+                self.query_one("#apply-update").display = result.get("available", False)
                 self.status(result["message"])
+            elif identifier == "apply-update" and self._update:
+                from .updater import apply_update
+                self.save_navigation()
+                result = await self.task("正在下载并安装更新…", apply_update, self.paths, self._update, lock_held=True)
+                self.status(result)
+                self.query_one("#apply-update").display = False
         except Exception as exc:
             self.show_error(exc)

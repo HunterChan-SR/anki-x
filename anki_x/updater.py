@@ -11,6 +11,7 @@ import sys
 import tempfile
 import urllib.error
 import urllib.request
+from contextlib import nullcontext
 from pathlib import Path
 
 from packaging.version import Version
@@ -29,26 +30,22 @@ def installation(paths):
 
 def _launcher(paths, root):
     system, _ = system_id()
-    if os.environ.get("ANKI_X_INSTALL_TEST") == "1":
-        target = Path(os.environ["ANKI_X_BIN_DIR"]) / ("anki-x.cmd" if system == "windows" else "anki-x")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(str(root / ("anki-x.exe" if system == "windows" else "anki-x")))
-        return [str(target)]
     if system == "windows":
-        bindir = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local")) / "Programs/anki-x/bin"
+        bindir = Path(os.environ.get("ANKI_X_BIN_DIR", Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local")) / "Programs/anki-x/bin"))
         bindir.mkdir(parents=True, exist_ok=True)
         command = bindir / "anki-x.cmd"
-        command.write_text('@echo off\r\n"' + str(root / "anki-x.exe") + '" %*\r\n', encoding="utf-8")
+        command.write_text('@echo off\r\nchcp 65001 >nul\r\nrem anki-x managed launcher\r\n"' + str(root / "anki-x.exe") + '" %*\r\n', encoding="utf-8")
         # Update the user's PATH without truncating it through setx.
         import winreg
-        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
-            try:
-                current, kind = winreg.QueryValueEx(key, "Path")
-            except FileNotFoundError:
-                current, kind = "", winreg.REG_EXPAND_SZ
-            if str(bindir).lower() not in [part.lower() for part in current.split(";")]:
-                winreg.SetValueEx(key, "Path", 0, kind, current.rstrip(";") + ";" + str(bindir))
-        start = Path(os.environ.get("APPDATA", Path.home() / "AppData/Roaming")) / "Microsoft/Windows/Start Menu/Programs"
+        if not os.environ.get("ANKI_X_NO_PATH_UPDATE"):
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+                try:
+                    current, kind = winreg.QueryValueEx(key, "Path")
+                except FileNotFoundError:
+                    current, kind = "", winreg.REG_EXPAND_SZ
+                if str(bindir).lower() not in [part.lower() for part in current.split(";")]:
+                    winreg.SetValueEx(key, "Path", 0, kind, current.rstrip(";") + ";" + str(bindir))
+        start = Path(os.environ.get("ANKI_X_SHORTCUT_DIR", Path(os.environ.get("APPDATA", Path.home() / "AppData/Roaming")) / "Microsoft/Windows/Start Menu/Programs"))
         start.mkdir(parents=True, exist_ok=True)
         shortcut = start / "anki-x.cmd"
         shortcut.write_text(command.read_text(), encoding="utf-8")
@@ -57,7 +54,7 @@ def _launcher(paths, root):
     bindir.mkdir(parents=True, exist_ok=True)
     command = bindir / "anki-x"
     if command.exists() or command.is_symlink():
-        owned = command.is_symlink() and ("anki-x" in str(command.resolve()))
+        owned = command.is_symlink() and command.resolve().name == "anki-x"
         text = command.read_text(errors="ignore")[:400] if not command.is_symlink() else ""
         if not owned and "# anki-x managed launcher" not in text:
             raise RuntimeError("命令位置已有其他程序：" + str(command))
@@ -66,20 +63,20 @@ def _launcher(paths, root):
     command.chmod(0o755)
     launchers = [str(command)]
     if system == "macos":
-        desktop = Path.home() / "Applications/anki-x.command"
+        desktop = Path(os.environ.get("ANKI_X_SHORTCUT_DIR", Path.home() / "Applications")) / "anki-x.command"
         desktop.parent.mkdir(parents=True, exist_ok=True)
         desktop.write_text("#!/bin/sh\nexec " + shlex.quote(str(root / "anki-x")) + "\n")
         desktop.chmod(0o755)
         launchers.append(str(desktop))
     else:
-        desktop = Path.home() / ".local/share/applications/anki-x.desktop"
+        desktop = Path(os.environ.get("ANKI_X_SHORTCUT_DIR", Path.home() / ".local/share/applications")) / "anki-x.desktop"
         desktop.parent.mkdir(parents=True, exist_ok=True)
         desktop.write_text('[Desktop Entry]\nType=Application\nName=anki-x\nComment=Learn with Anki in your terminal\nExec="' + str(root / "anki-x").replace('"', '\\"') + '"\nTerminal=true\nCategories=Education;\n')
         launchers.append(str(desktop))
     return launchers
 
 
-def install_payload(payload, paths, version=__version__):
+def install_payload(payload, paths, version=__version__, *, lock_held=False):
     payload = Path(payload).resolve()
     executable = "anki-x.exe" if os.name == "nt" else "anki-x"
     if not (payload / executable).is_file():
@@ -87,7 +84,7 @@ def install_payload(payload, paths, version=__version__):
     if not all(c.isalnum() or c in ".-_" for c in version):
         raise RuntimeError("无效版本号。")
     paths.ensure()
-    with SessionLock(paths.state):
+    with (nullcontext() if lock_held else SessionLock(paths.state)):
         previous = installation(paths)
         releases = paths.data / "runtime"
         releases.mkdir(parents=True, exist_ok=True)
@@ -105,6 +102,9 @@ def install_payload(payload, paths, version=__version__):
             finally:
                 if stage.exists():
                     shutil.rmtree(stage)
+        result = subprocess.run([str(target / executable), "--version"], capture_output=True, text=True, encoding="utf-8", timeout=30)
+        if result.returncode or result.stdout.strip() != version:
+            raise RuntimeError("安装目录验证失败，未切换程序入口。")
         launchers = _launcher(paths, target)
         write_json(paths.data / "installation.json", {"version": version, "root": str(target),
                    "previous": previous.get("root") if previous.get("root") != str(target) else previous.get("previous"),
@@ -128,7 +128,7 @@ def check_update():
             "message": "发现新版本 " + version if available else "当前已是最新版本。"}
 
 
-def apply_update(paths, release=None):
+def apply_update(paths, release=None, *, lock_held=False):
     release = release or check_update()
     if not release.get("available"):
         return release["message"]
@@ -146,7 +146,7 @@ def apply_update(paths, release=None):
     with tempfile.TemporaryDirectory(prefix="anki-x-update-", dir=paths.cache) as folder:
         extract_zip(package, folder)
         root = Path(folder) / "anki-x"
-        install_payload(root, paths, release["version"])
+        install_payload(root, paths, release["version"], lock_held=lock_held)
     return "更新已安装，下次启动使用新版本。可以运行 anki-x rollback 回退。"
 
 
