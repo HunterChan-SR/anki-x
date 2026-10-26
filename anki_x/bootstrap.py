@@ -156,6 +156,7 @@ class Connector:
                 try:
                     collection = client.connect()
                 except AnkiError:
+                    client.timeout = 15
                     compatibility = Environment("profile_needed", "请先打开一个 Anki 账户", "在 Anki 中完成首次设置或选择账户，然后点击重新检查。",
                                                 executable, candidate.base or base, client.endpoint, anki_version=version, client=client)
                     continue
@@ -164,6 +165,7 @@ class Connector:
                     self.settings.set("anki_base", str(candidate.base))
                 self.environment = Environment("ready", "Anki 已连接", "可以开始学习。", executable, candidate.base or base,
                                                client.endpoint, collection["profile"], version, tested, client=client)
+                client.timeout = 15
                 return self.environment
             except ConnectionError as exc:
                 authentication |= exc.code in (401, 403)

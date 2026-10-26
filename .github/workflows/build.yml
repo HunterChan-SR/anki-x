@@ -48,11 +48,15 @@ jobs:
         run: python tools/smoke_onboarding.py
       - name: Verify frozen program without source imports
         run: python tools/smoke_distribution.py
+      - name: Native install entry points
+        run: python tools/package_native.py
       - uses: actions/upload-artifact@v4
         with:
           name: anki-x-${{ matrix.platform }}
           path: |
             dist/*.zip
             dist/*.sha256
+            dist/*.dmg
+            dist/*-setup.exe
             dist/*-verification.json
           retention-days: 30

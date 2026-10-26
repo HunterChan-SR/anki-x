@@ -439,6 +439,12 @@ class AnkiX(App):
         if self.page != "review" or self.busy:
             return
         try:
+            self.saved["review"] = {"deck_id": self.deck.deck_id, "in_flight": True}
+            if self.navigation:
+                # If the process ends after Anki commits but before the next
+                # frame, do not restore an already-answered cached side.
+                snapshot = dict(self.saved, view="review")
+                self.navigation.save(snapshot)
             await self.task("正在保存评分…", self.review.grade, RATINGS[value - 1][0])
             self.detail = False
             self.query_one("#card-scroll", VerticalScroll).scroll_home(animate=False)
@@ -540,7 +546,7 @@ class AnkiX(App):
         self.show_page("help")
 
     def save_navigation(self):
-        if not self.navigation or not self.deck_model:
+        if not self.navigation or not self.deck_model or self.busy:
             return
         if self.page in ("home", "review"):
             self.saved["view"] = self.page

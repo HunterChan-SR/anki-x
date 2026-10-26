@@ -50,6 +50,7 @@ def server(base, ready):
 
 
 def main():
+    os.environ.setdefault("ANKI_X_AUDIO_BACKEND", "null")
     from anki_x.bootstrap import Connector
     from anki_x.content import starter_deck
     from anki_x.review import Reviewer
@@ -100,18 +101,20 @@ def main():
                                   "starter_cards": 6, "idempotent_import": True, "audio": True,
                                   "native_review_and_undo": True}, indent=2))
             finally:
-                if review:
-                    review.close()
-                if client:
-                    try:
-                        client.call("application.exit")
-                    except Exception:
-                        pass
                 try:
-                    process.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait(timeout=5)
+                    if review:
+                        review.close()
+                finally:
+                    if client:
+                        try:
+                            client.call("application.exit")
+                        except Exception:
+                            pass
+                    try:
+                        process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=5)
 
 
 if __name__ == "__main__":

@@ -108,7 +108,7 @@ def install_anki(paths, settings, progress=None):
     elif system == "windows":
         # Display the vendor installer; elevation and installation location stay
         # under the user's normal Windows installer interaction.
-        result = subprocess.run(["msiexec.exe", "/i", str(destination), "/passive", "/norestart"], timeout=900)
+        result = subprocess.run(["msiexec.exe", "/i", str(destination), "/norestart"], timeout=900)
         if result.returncode not in (0, 3010):
             raise RuntimeError(f"Anki 安装未完成（代码 {result.returncode}），可重新运行安装。")
         executable = find_anki(data_dir=paths.data)

@@ -2,6 +2,7 @@
 
 import os
 import threading
+from pathlib import Path
 
 
 class Playback:
@@ -9,14 +10,16 @@ class Playback:
         import miniaudio
         self.done = threading.Event()
         self.device = None
+        self.stream = None
+        self.source = None
         self._closed = False
         backends = [miniaudio.Backend.NULL] if os.environ.get("ANKI_X_AUDIO_BACKEND") == "null" else None
         try:
-            stream = miniaudio.stream_file(str(filename))
-            stream = miniaudio.stream_with_callbacks(stream, end_callback=self.done.set)
-            next(stream)
+            self.source = miniaudio.stream_memory(Path(filename).read_bytes())
+            self.stream = miniaudio.stream_with_callbacks(self.source, end_callback=self.done.set)
+            next(self.stream)
             self.device = miniaudio.PlaybackDevice(backends=backends, app_name="anki-x")
-            self.device.start(stream)
+            self.device.start(self.stream)
         except Exception:
             self.terminate()
             raise
@@ -35,6 +38,10 @@ class Playback:
             self._closed = True
             if self.device:
                 self.device.close()
+            if self.stream:
+                self.stream.close()
+            if self.source:
+                self.source.close()
             self.done.set()
 
 

@@ -57,12 +57,12 @@ class Client:
         except (OSError, ValueError, urllib.error.URLError) as exc:
             raise ConnectionError("无法取得 Anki 响应。请保持 Anki 打开；本次请求不会自动重发。") from exc
         if not isinstance(reply, dict) or reply.get("id") != request_id or reply.get("jsonrpc") != "2.0":
-            raise AnkiError("AnkiConnect 响应格式不符；需要支持 API v1 的官方新版插件。")
+            raise ConnectionError("AnkiConnect 响应无法确认；需要支持 API v1 的官方新版插件。")
         if "error" in reply:
             error = reply["error"]
             raise AnkiError(error.get("message", str(error)), error.get("code"), error.get("data"))
         if "result" not in reply:
-            raise AnkiError("AnkiConnect 响应缺少 result。")
+            raise ConnectionError("AnkiConnect 响应缺少结果，操作结果尚未确认。")
         return reply["result"]
 
     def connect(self):

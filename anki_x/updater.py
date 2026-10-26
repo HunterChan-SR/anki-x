@@ -22,10 +22,25 @@ from .platforms import system_id
 from .storage import SessionLock, read_json, write_json
 
 REPOSITORY = "HunterChan-SR/anki-x"
+PATH_START = "# >>> anki-x PATH >>>"
+PATH_END = "# <<< anki-x PATH <<<"
 
 
 def installation(paths):
     return read_json(paths.data / "installation.json")
+
+
+def ensure_shell_path(bindir):
+    if os.environ.get("ANKI_X_NO_PATH_UPDATE"):
+        return
+    value = shlex.quote(str(bindir))
+    block = f'{PATH_START}\ncase ":$PATH:" in *:{value}:*) ;; *) export PATH={value}:"$PATH" ;; esac\n{PATH_END}\n'
+    for name in (".profile", ".bashrc", ".zshrc"):
+        path = Path.home() / name
+        content = path.read_text(encoding="utf-8") if path.exists() else ""
+        if PATH_START not in content:
+            with path.open("a", encoding="utf-8") as stream:
+                stream.write("\n" + block)
 
 
 def _launcher(paths, root):
@@ -34,6 +49,8 @@ def _launcher(paths, root):
         bindir = Path(os.environ.get("ANKI_X_BIN_DIR", Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local")) / "Programs/anki-x/bin"))
         bindir.mkdir(parents=True, exist_ok=True)
         command = bindir / "anki-x.cmd"
+        if command.exists() and "anki-x managed launcher" not in command.read_text(encoding="utf-8", errors="ignore"):
+            raise RuntimeError("命令位置已有其他程序：" + str(command))
         command.write_text('@echo off\r\nchcp 65001 >nul\r\nrem anki-x managed launcher\r\n"' + str(root / "anki-x.exe") + '" %*\r\n', encoding="utf-8")
         # Update the user's PATH without truncating it through setx.
         import winreg
@@ -45,6 +62,9 @@ def _launcher(paths, root):
                     current, kind = "", winreg.REG_EXPAND_SZ
                 if str(bindir).lower() not in [part.lower() for part in current.split(";")]:
                     winreg.SetValueEx(key, "Path", 0, kind, current.rstrip(";") + ";" + str(bindir))
+            import ctypes
+            result = ctypes.c_ulong()
+            ctypes.windll.user32.SendMessageTimeoutW(0xFFFF, 0x001A, 0, "Environment", 2, 5000, ctypes.byref(result))
         start = Path(os.environ.get("ANKI_X_SHORTCUT_DIR", Path(os.environ.get("APPDATA", Path.home() / "AppData/Roaming")) / "Microsoft/Windows/Start Menu/Programs"))
         start.mkdir(parents=True, exist_ok=True)
         shortcut = start / "anki-x.cmd"
@@ -61,6 +81,7 @@ def _launcher(paths, root):
         command.unlink()
     command.write_text("#!/bin/sh\n# anki-x managed launcher\nexec " + shlex.quote(str(root / "anki-x")) + ' "$@"\n')
     command.chmod(0o755)
+    ensure_shell_path(bindir)
     launchers = [str(command)]
     if system == "macos":
         desktop = Path(os.environ.get("ANKI_X_SHORTCUT_DIR", Path.home() / "Applications")) / "anki-x.command"
@@ -173,10 +194,33 @@ def uninstall(paths):
             path = Path(name)
             if path.is_file() or path.is_symlink():
                 path.unlink()
-        # A Windows process cannot delete its running executable. Leave the
-        # version cache for the installer cleanup step, without deleting data.
-        if os.name != "nt":
+        if os.name == "nt":
+            bindir = str(Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local")) / "Programs/anki-x/bin")
+            import winreg
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+                try:
+                    current, kind = winreg.QueryValueEx(key, "Path")
+                    kept = [part for part in current.split(";") if part.lower() != bindir.lower()]
+                    winreg.SetValueEx(key, "Path", 0, kind, ";".join(kept))
+                except FileNotFoundError:
+                    pass
+            cleanup = paths.cache / "uninstall.ps1"
+            runtime = str(paths.data / "runtime").replace("'", "''")
+            cleanup.write_text(f"Wait-Process -Id {os.getpid()} -ErrorAction SilentlyContinue\nRemove-Item -LiteralPath '{runtime}' -Recurse -Force -ErrorAction SilentlyContinue\nRemove-Item -LiteralPath $PSCommandPath -Force\n", encoding="utf-8")
+            subprocess.Popen(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(cleanup)],
+                             creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
             shutil.rmtree(paths.data / "runtime", ignore_errors=True)
+            if not os.environ.get("ANKI_X_NO_PATH_UPDATE"):
+                for name in (".profile", ".bashrc", ".zshrc"):
+                    path = Path.home() / name
+                    if not path.exists():
+                        continue
+                    content = path.read_text(encoding="utf-8")
+                    if PATH_START in content and PATH_END in content:
+                        before, rest = content.split(PATH_START, 1)
+                        _, after = rest.split(PATH_END, 1)
+                        path.write_text(before + after.lstrip("\n"), encoding="utf-8")
         (paths.data / "installation.json").unlink(missing_ok=True)
     return "程序入口已卸载，设置、恢复记录和 Anki 词库已保留。"
 
