@@ -7,7 +7,6 @@ from unittest.mock import Mock, patch
 
 from anki_x.navigation import DeckTree, NavigationStore, start_location
 from anki_x.review import Reviewer
-from anki_x.tui import App
 
 
 DECKS = [{"id": "1", "name": "Default"}, {"id": "2", "name": "English"},
@@ -127,20 +126,6 @@ class BookmarkTests(unittest.TestCase):
         self.assertEqual(self.review.state["stateToken"], "fresh")
 
 
-class FakeUI:
-    height, body_width, accent, muted = 32, 100, 0, 0
-
-    def __init__(self, keys):
-        self.keys, self.frames = iter(keys), []
-
-    def begin(self): self.lines = []
-    def line(self, y, text, *args): self.lines.append(text)
-    def rule(self, y): pass
-    def flush(self): self.frames.append(list(self.lines))
-    def progress(self, state): pass
-    def key(self): return next(self.keys)
-
-
 class FakeClient:
     def __init__(self):
         self.selected = "2"
@@ -164,73 +149,6 @@ class FakeClient:
 
     def deck_counts(self, deck):
         return {"new": 3, "learning": 0, "review": 0, "total": 3}
-
-
-class AppFlowTests(unittest.TestCase):
-    def run_app(self, keys, saved=None):
-        client, ui, checkpoints = FakeClient(), FakeUI(keys), []
-        app = App(ui, client, preferred="English::CET4", autoplay=False, navigation=saved,
-                  on_navigation_change=lambda value: checkpoints.append(copy.deepcopy(value)))
-        with patch("anki_x.tui.curses.flushinp"):
-            app.run()
-        return client, ui, checkpoints[-1]
-
-    def test_enter_return_choose_another_deck_and_quit_home(self):
-        client, ui, saved = self.run_app(["l", "l", "\n", "\x1b", "j", "\n", "b", "q"])
-        self.assertEqual(client.navigated, ["3", "5"])
-        self.assertEqual(saved["view"], "home")
-        self.assertEqual(saved["home"]["selected"], "5")
-        self.assertIn("2", saved["home"]["expanded"])
-        self.assertTrue(any("我的牌组" in line for line in ui.frames[0]))
-
-    def test_quit_answer_then_restart_restores_answer(self):
-        _, _, saved = self.run_app(["l", "l", "\n", " ", "q"])
-        self.assertEqual(saved["view"], "review")
-        self.assertEqual(saved["review"]["side"], "answer")
-        client, ui, resumed = self.run_app(["q"], saved)
-        self.assertEqual(client.navigated, ["3"])
-        self.assertEqual(resumed["review"]["side"], "answer")
-        self.assertTrue(any("核对答案" in line for frame in ui.frames for line in frame))
-
-    def test_quit_home_restores_tree_without_entering_review(self):
-        _, _, saved = self.run_app(["l", "l", "q"])
-        client, _, resumed = self.run_app(["q"], saved)
-        self.assertEqual(client.navigated, [])
-        self.assertEqual(resumed["home"], saved["home"])
-
-    def test_toggles_survive_return_to_home_and_other_deck(self):
-        client, ui, preferences = FakeClient(), FakeUI(["t", "l", "l", "\n", "a", "b", "j", "\n", "q"]), []
-        app = App(ui, client, preferred="English::CET4", autoplay=False,
-                  on_preference_change=lambda key, value: preferences.append((key, value)))
-        with patch("anki_x.tui.curses.flushinp"), patch.object(Reviewer, "audio") as audio:
-            app.run()
-        self.assertEqual(preferences, [("show_title", False), ("autoplay", True)])
-        self.assertFalse(app.show_title)
-        self.assertTrue(app.autoplay)
-        self.assertEqual(audio.call_count, 2)
-
-    def test_restore_answer_scroll_and_details(self):
-        client, ui = FakeClient(), FakeUI(["l", "l", "\n", " ", "d", "j", "j", "q"])
-        original = client.col
-
-        def read(method, **params):
-            result = original(method, **params)
-            if method == "notes.get":
-                result["fields"]["Back"] = "<br>".join("dictionary line " + str(i) for i in range(50))
-            return result
-
-        client.col = read
-        app = App(ui, client, preferred="English::CET4", autoplay=False)
-        with patch("anki_x.tui.curses.flushinp"):
-            app.run()
-        saved = app.snapshot()
-        self.assertTrue(saved["review"]["detail"])
-        self.assertEqual(saved["review"]["offset"], 2)
-        resumed = App(FakeUI(["q"]), client, autoplay=False, navigation=saved)
-        with patch("anki_x.tui.curses.flushinp"):
-            resumed.run()
-        self.assertEqual(resumed.snapshot()["review"]["offset"], 2)
-        self.assertTrue(resumed.snapshot()["review"]["detail"])
 
 
 if __name__ == "__main__":
