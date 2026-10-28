@@ -1,7 +1,7 @@
 #!/bin/sh
 # anki-x release installer. No Python or developer tools required.
 set -eu
-anki_x_version=${ANKI_X_VERSION:-1.0.0rc1}
+anki_x_version=${ANKI_X_VERSION:-1.0.0rc3}
 anki_x_base="https://github.com/HunterChan-SR/anki-x/releases/download/v$anki_x_version"
 case "$(uname -s)" in
   Darwin) anki_x_os=macos ;;

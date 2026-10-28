@@ -6,6 +6,25 @@
 
 ## 安装
 
+包管理器安装（首次发布完成后的状态以对应平台页面为准）：
+
+```sh
+# Python 3.12+；pipx 为命令行工具创建独立环境
+pipx install 'anki-x-cli==1.0.0rc3'
+# 或：python -m pip install --pre anki-x-cli
+
+# macOS / Linux，无需 Python
+brew install HunterChan-SR/tap/anki-x
+
+# Node.js 22.14+，支持三端，无需 Python
+npm install -g anki-x@next
+```
+
+npm 首次运行会下载并校验对应平台的原生程序，后续启动可离线使用。
+PyPI 的安装包名为 `anki-x-cli`（`anki-x` 被平台的相似包名规则拒绝），安装后的启动命令仍为 `anki-x`。
+包管理器安装请使用对应的 `pipx upgrade`、`brew upgrade` 或 `npm install -g anki-x@next` 更新，
+卸载也使用原包管理器。学习数据与设置不会保存在包目录中。
+
 从 [Releases](https://github.com/HunterChan-SR/anki-x/releases) 下载与你的系统对应的压缩包，解压后运行安装入口：
 
 | 系统 | 下载文件后缀 | 安装入口 |
@@ -26,18 +45,18 @@ macOS 的用户应用目录、Windows 开始菜单和 Linux 应用菜单也会�
 命令行安装（发布资产提供后可用）：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/HunterChan-SR/anki-x/codex/productization/install.sh -o /tmp/anki-x-install.sh
+curl -fsSL https://github.com/HunterChan-SR/anki-x/releases/download/v1.0.0rc3/install.sh -o /tmp/anki-x-install.sh
 sh /tmp/anki-x-install.sh
 ```
 
 Windows PowerShell：
 
 ```powershell
-Invoke-WebRequest https://raw.githubusercontent.com/HunterChan-SR/anki-x/codex/productization/install.ps1 -OutFile "$env:TEMP\anki-x-install.ps1"
+Invoke-WebRequest https://github.com/HunterChan-SR/anki-x/releases/download/v1.0.0rc3/install.ps1 -OutFile "$env:TEMP\anki-x-install.ps1"
 & "$env:TEMP\anki-x-install.ps1"
 ```
 
-安装器从本项目 Release 下载对应平台文件，校验 SHA-256，再安装到用户目录。无权限修改系统目录时也可使用便携包。当前为 `1.0.0rc1` 预发布版，平台验证和签名状态见对应 Release；不要把“可下载”当作操作系统签名认证。
+安装器从本项目 Release 下载对应平台文件，校验 SHA-256，再安装到用户目录。无权限修改系统目录时也可使用便携包。当前为 `1.0.0rc3` 预发布版，平台验证和签名状态见对应 Release。
 
 ## 第一次打开
 
@@ -114,6 +133,11 @@ python tools/smoke_onboarding.py
 ```
 
 跨平台 UI 测试覆盖首次向导、树形牌组、返回、退出恢复和设置。安装检查在空用户目录中执行打包后的二进制及安装后的命令入口。音频包含空输出设备自动验证，本机另验证真实声音设备。
+
+## 发布
+
+推送 `vX.Y.Z` 或 `vX.Y.ZrcN` 标签后，GitHub Actions 自动构建、验证并发布 GitHub 安装包、PyPI、npm 和 Homebrew Tap。
+预发布版使用 npm `next`，正式版使用 `latest`。账号首次绑定、重试某个渠道及版本规则见 [发布说明](docs/PUBLISHING.md)。
 
 ## 许可与范围
 

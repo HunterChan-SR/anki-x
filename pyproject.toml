@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27,<2"]
 build-backend = "hatchling.build"
 
 [project]
-name = "anki-x"
+name = "anki-x-cli"
 dynamic = ["version"]
 description = "A ready-to-use terminal companion for Anki Desktop"
 readme = "README.md"
@@ -35,6 +35,15 @@ path = "anki_x/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["anki_x"]
+core-metadata-version = "2.4"
+
+[tool.hatch.build.targets.sdist]
+core-metadata-version = "2.4"
+include = [
+  "/anki_x", "/tests", "/tools", "/packaging", "/docs", "/.github",
+  "/pyproject.toml", "/README.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md",
+  "/requirements*.lock", "/uv.lock", "/install.sh", "/install.ps1",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

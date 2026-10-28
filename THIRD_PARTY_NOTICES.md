@@ -6,6 +6,8 @@ The distribution contains the official, unmodified AnkiConnect add-on at commit 
 
 Runtime dependencies include Textual (MIT), Rich (MIT), platformdirs (MIT), portalocker (BSD-3-Clause), miniaudio and its bundled decoding backend (see miniaudio notices), CFFI (MIT), zstandard (BSD), psutil (BSD-3-Clause), and packaging (Apache-2.0 / BSD). The release's `licenses/` directory and `DEPENDENCIES.json` contain notices and exact build versions.
 
+The npm launcher additionally uses fflate (MIT), installed by npm with its license. Its native runtime is the same verified release archive used by the other binary channels.
+
 The six starter words, definitions, and example sentences are original anki-x material under MIT. Their demonstration audio was synthesized with Flite 2.2, voice `cmu_us_kal16`. See `licenses/Flite-COPYING.txt` for CMU and contributor notices. This small sample is for verifying the learning flow, not a bundled copy of any user's dictionary deck.
 
 Anki Desktop is downloaded from the official `ankitects/anki` release, with the vendor's published SHA-256 verified before installation. It remains a separate application with its own license and account/data management.

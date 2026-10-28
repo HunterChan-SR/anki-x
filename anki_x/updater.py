@@ -26,6 +26,45 @@ PATH_START = "# >>> anki-x PATH >>>"
 PATH_END = "# <<< anki-x PATH <<<"
 
 
+def package_manager():
+    explicit = os.environ.get("ANKI_X_PACKAGE_MANAGER")
+    if explicit in ("npm", "homebrew"):
+        return explicit
+    if not getattr(sys, "frozen", False):
+        executable = str(Path(sys.executable).absolute()).replace("\\", "/")
+        if "/pipx/venvs/" in executable:
+            return "pipx"
+        if "/uv/tools/" in executable:
+            return "uv"
+        return "python"
+    return None
+
+
+def manager_instructions(command="update"):
+    manager = package_manager()
+    if not manager:
+        return None
+    npm_tag = "next" if Version(__version__).is_prerelease else "latest"
+    commands = {
+        "homebrew": ("brew upgrade HunterChan-SR/tap/anki-x", "brew uninstall anki-x"),
+        "npm": (f"npm install -g anki-x@{npm_tag}", "npm uninstall -g anki-x"),
+        "pipx": ("pipx upgrade anki-x-cli --pip-args=--pre", "pipx uninstall anki-x-cli"),
+        "uv": ("uv tool upgrade anki-x-cli --prerelease=allow", "uv tool uninstall anki-x-cli"),
+        "python": (f"{shlex.quote(sys.executable)} -m pip install --upgrade --pre anki-x-cli",
+                   f"{shlex.quote(sys.executable)} -m pip uninstall anki-x-cli"),
+    }
+    update, remove = commands[manager]
+    if command == "rollback":
+        return f"当前由 {manager} 管理，请通过原包管理器选择旧版本；设置和学习数据会保留。"
+    return f"当前由 {manager} 管理，请运行：{remove if command == 'uninstall' else update}"
+
+
+def require_self_managed(command="update"):
+    message = manager_instructions(command)
+    if message:
+        raise RuntimeError(message)
+
+
 def installation(paths):
     return read_json(paths.data / "installation.json")
 
@@ -98,6 +137,7 @@ def _launcher(paths, root):
 
 
 def install_payload(payload, paths, version=__version__, *, lock_held=False):
+    require_self_managed("install")
     payload = Path(payload).resolve()
     executable = "anki-x.exe" if os.name == "nt" else "anki-x"
     if not (payload / executable).is_file():
@@ -134,6 +174,9 @@ def install_payload(payload, paths, version=__version__, *, lock_held=False):
 
 
 def check_update():
+    message = manager_instructions()
+    if message:
+        return {"available": False, "message": message}
     request = urllib.request.Request(f"https://api.github.com/repos/{REPOSITORY}/releases/latest",
                                      headers={"Accept": "application/vnd.github+json", "User-Agent": "anki-x"})
     try:
@@ -150,6 +193,7 @@ def check_update():
 
 
 def apply_update(paths, release=None, *, lock_held=False):
+    require_self_managed()
     release = release or check_update()
     if not release.get("available"):
         return release["message"]
@@ -172,6 +216,7 @@ def apply_update(paths, release=None, *, lock_held=False):
 
 
 def rollback(paths):
+    require_self_managed("rollback")
     with SessionLock(paths.state):
         installed = installation(paths)
         previous = Path(installed.get("previous", ""))
@@ -186,6 +231,7 @@ def rollback(paths):
 
 
 def uninstall(paths):
+    require_self_managed("uninstall")
     with SessionLock(paths.state):
         installed = installation(paths)
         if not installed:
@@ -226,6 +272,10 @@ def uninstall(paths):
 
 
 def run_update_command(args, paths):
+    message = manager_instructions(args.command)
+    if message:
+        print(message)
+        return 0
     if args.command == "update":
         print(apply_update(paths))
     elif args.command == "rollback":

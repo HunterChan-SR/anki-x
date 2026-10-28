@@ -18,6 +18,9 @@ class UpdateTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.paths = paths_at(self.root / "user")
         self.paths.ensure()
+        frozen = patch("sys.frozen", True, create=True)
+        frozen.start()
+        self.addCleanup(frozen.stop)
         self.environment = patch.dict(os.environ, {"ANKI_X_BIN_DIR": str(self.root / "bin"),
                                                     "ANKI_X_SHORTCUT_DIR": str(self.root / "shortcuts"), "ANKI_X_NO_PATH_UPDATE": "1"})
         self.environment.start()

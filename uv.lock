@@ -12,7 +12,7 @@ wheels = [
 ]
 
 [[package]]
-name = "anki-x"
+name = "anki-x-cli"
 source = { editable = "." }
 dependencies = [
     { name = "miniaudio" },

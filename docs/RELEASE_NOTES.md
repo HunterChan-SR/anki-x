@@ -1,4 +1,6 @@
-anki-x is a cross-platform terminal companion for Anki Desktop. This release candidate includes a guided first run, automatic AnkiConnect discovery, native audio playback, sample vocabulary cards, settings and recovery, and self-contained installers.
+anki-x is a cross-platform terminal companion for Anki Desktop. This release candidate adds PyPI, npm and Homebrew distribution and automatic publishing from version tags. Existing study, onboarding and recovery features are retained.
+
+Package-manager installs keep updates and uninstalls under the original package manager. The npm launcher downloads a SHA-256-pinned native runtime on first launch and then works from its local cache. PyPI requires Python 3.12+; npm requires Node 22.14+; Homebrew uses the self-contained binaries.
 
 Download the matching platform package. No Python installation is required.
 

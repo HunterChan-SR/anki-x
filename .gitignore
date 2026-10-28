@@ -9,5 +9,9 @@ build/
 .pytest_cache/
 .coverage
 *.spec
+node_modules/
+*.tgz
+channels/
+release-assets/
 verification/*.json
 verification/*.log
