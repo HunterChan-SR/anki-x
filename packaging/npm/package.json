@@ -1,0 +1,17 @@
+{
+  "name": "anki-x",
+  "version": "0.0.0",
+  "description": "Learn with Anki Desktop from your terminal. Native runtime included.",
+  "license": "MIT",
+  "repository": {"type": "git", "url": "git+https://github.com/HunterChan-SR/anki-x.git"},
+  "homepage": "https://github.com/HunterChan-SR/anki-x#readme",
+  "bugs": {"url": "https://github.com/HunterChan-SR/anki-x/issues"},
+  "bin": {"anki-x": "bin/anki-x.cjs"},
+  "engines": {"node": ">=22.14.0"},
+  "os": ["darwin", "win32", "linux"],
+  "cpu": ["arm64", "x64"],
+  "files": ["bin/", "lib/", "manifest.json", "LICENSE", "README.md", "THIRD_PARTY_NOTICES.md"],
+  "scripts": {"test": "node --test test/*.test.cjs"},
+  "dependencies": {"fflate": "0.8.3"},
+  "publishConfig": {"access": "public", "registry": "https://registry.npmjs.org/"}
+}

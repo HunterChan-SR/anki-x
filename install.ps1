@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$AnkiXVersion = if ($env:ANKI_X_VERSION) { $env:ANKI_X_VERSION } else { '1.0.0rc1' }
+$AnkiXVersion = if ($env:ANKI_X_VERSION) { $env:ANKI_X_VERSION } else { '1.0.0rc2' }
 $AnkiXArch = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64') { 'arm64' } else { 'x64' }
 $AnkiXBase = "https://github.com/HunterChan-SR/anki-x/releases/download/v$AnkiXVersion"
 $AnkiXFile = "anki-x-$AnkiXVersion-windows-$AnkiXArch.zip"
