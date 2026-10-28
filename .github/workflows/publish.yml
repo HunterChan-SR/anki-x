@@ -120,7 +120,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: package-channels
-          path: channels/
+          path: |
+            channels/python/*
+            channels/npm/*.tgz
+            channels/npm/package.json
+            channels/npm/manifest.json
+            channels/homebrew/Formula/anki-x.rb
           retention-days: 30
   pypi:
     needs: [resolve, prepare]
@@ -128,7 +133,7 @@ jobs:
     runs-on: ubuntu-22.04
     environment:
       name: pypi
-      url: https://pypi.org/p/anki-x
+      url: https://pypi.org/p/anki-x-cli
     permissions:
       id-token: write
       contents: read

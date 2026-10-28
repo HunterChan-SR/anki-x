@@ -101,6 +101,7 @@ class AnkiX < Formula
   end
 
   test do
+    ENV["ANKI_X_HOME"] = (testpath/"user").to_s
     assert_equal version.to_s, shell_output("#{bin}/anki-x --version").strip
     assert_match "brew upgrade", shell_output("#{bin}/anki-x update")
   end

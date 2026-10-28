@@ -40,6 +40,14 @@ def test_source_install_does_not_modify_native_installation():
         assert updater.check_update()["available"] is False
 
 
+def test_external_update_does_not_initialize_or_migrate_user_state():
+    from anki_x.cli import main
+    with patch.dict(os.environ, {"ANKI_X_PACKAGE_MANAGER": "homebrew"}), patch("anki_x.cli.AppPaths.discover") as discover:
+        assert main(["update"]) == 0
+        assert main(["uninstall", "--yes"]) == 0
+        discover.assert_not_called()
+
+
 def test_manifest_requires_all_platforms_and_pins_hashes(tmp_path):
     assets = tmp_path / "assets"
     assets.mkdir()

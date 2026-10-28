@@ -12,7 +12,7 @@ the project's Publishing settings if it already exists):
 
 | Field | Value |
 | --- | --- |
-| PyPI project name | `anki-x` |
+| PyPI project name | `anki-x-cli` |
 | Owner | `HunterChan-SR` |
 | Repository | `anki-x` |
 | Workflow | `publish.yml` |
@@ -20,6 +20,9 @@ the project's Publishing settings if it already exists):
 
 GitHub creates an OIDC identity for the `pypi` job. No PyPI password or API token
 is stored in the repository. The first successful publish creates the project.
+PyPI rejected `anki-x` as too similar to an existing project. Only the Python
+distribution name changes: `pip install --pre anki-x-cli` installs the same
+`anki-x` command. npm and Homebrew continue to use `anki-x`.
 
 ### npm
 
@@ -39,6 +42,13 @@ permission requires manual approval for each version. New trusted publisher
 configurations must complete their first publication within npm's activation
 window (currently two days). A later version, not an identical-version skip,
 is needed to exercise the new publisher.
+
+Alternatively, npm 11.15+ can configure the same binding (browser/2FA confirmation
+may be required):
+
+```sh
+npm trust github anki-x --repository HunterChan-SR/anki-x --file publish.yml --environment npm --allow-publish --yes --registry=https://registry.npmjs.org/
+```
 
 The workflow uses Node 24 and npm OIDC. No npm token is stored in GitHub.
 Public prereleases use `next`; stable versions use `latest`.

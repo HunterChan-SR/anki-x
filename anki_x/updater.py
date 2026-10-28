@@ -48,10 +48,10 @@ def manager_instructions(command="update"):
     commands = {
         "homebrew": ("brew upgrade HunterChan-SR/tap/anki-x", "brew uninstall anki-x"),
         "npm": (f"npm install -g anki-x@{npm_tag}", "npm uninstall -g anki-x"),
-        "pipx": ("pipx upgrade anki-x --pip-args=--pre", "pipx uninstall anki-x"),
-        "uv": ("uv tool upgrade anki-x --prerelease=allow", "uv tool uninstall anki-x"),
-        "python": (f"{shlex.quote(sys.executable)} -m pip install --upgrade --pre anki-x",
-                   f"{shlex.quote(sys.executable)} -m pip uninstall anki-x"),
+        "pipx": ("pipx upgrade anki-x-cli --pip-args=--pre", "pipx uninstall anki-x-cli"),
+        "uv": ("uv tool upgrade anki-x-cli --prerelease=allow", "uv tool uninstall anki-x-cli"),
+        "python": (f"{shlex.quote(sys.executable)} -m pip install --upgrade --pre anki-x-cli",
+                   f"{shlex.quote(sys.executable)} -m pip uninstall anki-x-cli"),
     }
     update, remove = commands[manager]
     if command == "rollback":

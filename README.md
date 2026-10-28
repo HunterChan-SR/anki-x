@@ -10,8 +10,8 @@
 
 ```sh
 # Python 3.12+；pipx 为命令行工具创建独立环境
-pipx install 'anki-x==1.0.0rc2'
-# 或：python -m pip install --pre anki-x
+pipx install 'anki-x-cli==1.0.0rc3'
+# 或：python -m pip install --pre anki-x-cli
 
 # macOS / Linux，无需 Python
 brew install HunterChan-SR/tap/anki-x
@@ -21,6 +21,7 @@ npm install -g anki-x@next
 ```
 
 npm 首次运行会下载并校验对应平台的原生程序，后续启动可离线使用。
+PyPI 的安装包名为 `anki-x-cli`（`anki-x` 被平台的相似包名规则拒绝），安装后的启动命令仍为 `anki-x`。
 包管理器安装请使用对应的 `pipx upgrade`、`brew upgrade` 或 `npm install -g anki-x@next` 更新，
 卸载也使用原包管理器。学习数据与设置不会保存在包目录中。
 
@@ -44,18 +45,18 @@ macOS 的用户应用目录、Windows 开始菜单和 Linux 应用菜单也会�
 命令行安装（发布资产提供后可用）：
 
 ```sh
-curl -fsSL https://github.com/HunterChan-SR/anki-x/releases/download/v1.0.0rc2/install.sh -o /tmp/anki-x-install.sh
+curl -fsSL https://github.com/HunterChan-SR/anki-x/releases/download/v1.0.0rc3/install.sh -o /tmp/anki-x-install.sh
 sh /tmp/anki-x-install.sh
 ```
 
 Windows PowerShell：
 
 ```powershell
-Invoke-WebRequest https://github.com/HunterChan-SR/anki-x/releases/download/v1.0.0rc2/install.ps1 -OutFile "$env:TEMP\anki-x-install.ps1"
+Invoke-WebRequest https://github.com/HunterChan-SR/anki-x/releases/download/v1.0.0rc3/install.ps1 -OutFile "$env:TEMP\anki-x-install.ps1"
 & "$env:TEMP\anki-x-install.ps1"
 ```
 
-安装器从本项目 Release 下载对应平台文件，校验 SHA-256，再安装到用户目录。无权限修改系统目录时也可使用便携包。当前为 `1.0.0rc2` 预发布版，平台验证和签名状态见对应 Release。
+安装器从本项目 Release 下载对应平台文件，校验 SHA-256，再安装到用户目录。无权限修改系统目录时也可使用便携包。当前为 `1.0.0rc3` 预发布版，平台验证和签名状态见对应 Release。
 
 ## 第一次打开
 

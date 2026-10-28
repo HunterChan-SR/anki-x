@@ -57,6 +57,12 @@ def main(argv=None):
             if hasattr(stream, "reconfigure"):
                 stream.reconfigure(encoding="utf-8", errors="replace")
     args = parser().parse_args(argv)
+    if args.command in ("update", "rollback", "uninstall"):
+        from .updater import manager_instructions
+        message = manager_instructions(args.command)
+        if message:
+            print(message)
+            return 0
     paths = AppPaths.discover()
     paths.ensure()
     if args.command == "paths":

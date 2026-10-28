@@ -29,7 +29,7 @@ def main():
     subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--name", "anki-x",
                     "--onedir", "--console", "--paths", str(ROOT), "--collect-all", "textual",
                     "--collect-all", "miniaudio", "--collect-all", "zstandard", "--collect-all", "platformdirs",
-                    "--copy-metadata", "anki-x", "--add-data", str(ROOT / "anki_x/assets") + os.pathsep + "anki_x/assets",
+                    "--copy-metadata", "anki-x-cli", "--add-data", str(ROOT / "anki_x/assets") + os.pathsep + "anki_x/assets",
                     *extra, str(entry)], cwd=ROOT, check=True)
     payload = dist / "anki-x"
     licenses = payload / "licenses"
